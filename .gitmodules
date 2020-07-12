@@ -1,0 +1,3 @@
+[submodule "FTD2XX"]
+	path = FTD2XX
+	url = https://github.com/wwwMADwww/FTD2XX_DotNetCoreWrapper.git

@@ -5,4 +5,8 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\FTD2XX\FTD2XX_DotNetCoreWrapper\FTD2XX_DotNetCoreWrapper.csproj" />
+  </ItemGroup>
+
 </Project>

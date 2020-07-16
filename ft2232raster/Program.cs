@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Drawing;
 using System.Linq;
 using FTD2XX_NET;
 
@@ -10,20 +11,39 @@ namespace ft2232raster
     {
         protected static int _bufferSize = 1024 * 4;
 
+        private static FTDI _channel;
+        private static byte[] _buf;
+
         // 2000000 max
         static uint _baudrate = 2000000;
 
 
+        private static byte[] _image;
         static int _resX = 480;
         static int _resY = 384;
+        static int _resZ = 16;
 
+        static int _porchBackX = 10;
+        static int _porchFrontX = 10;
 
+        static int _porchBackY = 10;
+        static int _porchFrontY = 10;
         const byte _pinClockMask = 0b00100000;
+        const byte _pinZMask     = 0b00001111;
 
-        const byte _pinClockX = 4;
-        const byte _pinClockY = 5;
-        const byte _pinClearX = 6;
+        // const byte _pinClockX = 4;
+        // const byte _pinClockY = 5;
+        // const byte _pinClearX = 6;
+        // const byte _pinClearY = 7;
+
+        const byte _pinClockY = 6;
         const byte _pinClearY = 7;
+
+        // const string _imagepath = @"E:\GFX\ILDA\mayoi420\Mayoi420 1.bmp";
+        // const string _imagepath = @"E:\GFX\ILDA\dich\dich04.bmp";
+        // const string _imagepath = @"E:\GFX\ILDA\chess 2.bmp";
+        // const string _imagepath = @"E:\GFX\ILDA\chess.bmp";
+        const string _imagepath = @"E:\GFX\ILDA\lines.bmp";
 
         static void Main(string[] args)
         {
@@ -31,34 +51,63 @@ namespace ft2232raster
 
 
 
-            var channel = OpenChannel("A", _baudrate);
+            _channel = OpenChannel("A", _baudrate);
 
-            var buf = new byte[_bufferSize];
+            _buf = new byte[_bufferSize];
             int pos = 0;
 
-            int cy = 0;
+            Bitmap img = new Bitmap(_imagepath);
+
+            _resX = img.Width;
+            _resY = img.Height;
+
+            _image = new byte[img.Width * img.Height];
+
+            var colorOffsetKoeff = 2;
+            var colorOffset = 256 - (256 / colorOffsetKoeff);
+
+            for (int i = 0; i < img.Height; i++)
+            {
+                for (int j = 0; j < img.Width; j++)
+                {
+                    Color pixel = img.GetPixel(j, i);
+
+                    _image[j + (i * img.Width)] = (byte) ((((pixel.G / colorOffsetKoeff) + colorOffset) / _resZ) ^ _pinZMask);
+                }
+            }
+
+            img.Dispose();
+
+            DrawDirect();
+
+        }
+
+
+        static void DrawDirect()
+        {
+            int pos = 0;
 
             while (true)
             {
-                foreach (var y in Enumerable.Range(0, _resY + 1))
+
+                foreach (var y in Enumerable.Range(-_porchFrontY, _porchFrontY + _resY + _porchBackY))
                 {
-                    foreach (var x in Enumerable.Range(0, _resX + 1))
+                    foreach (var x in Enumerable.Range(-_porchFrontX, _porchFrontX + _resX + _porchBackX))
                     {
 
                         if (pos >= _bufferSize)
-                        { 
+                        {
                             pos = 0;
 
-                            WriteToChannel(channel, buf);
+                            WriteToChannel(_channel, _buf);
                         }
-
 
                         byte reg = _pinClockMask;
 
                         if (x >= _resX)
                         {
-                            reg ^= (1 << _pinClearX);
-                        
+                            // reg ^= (1 << _pinClearX);
+
                             if (y >= _resY)
                             {
                                 reg ^= (1 << _pinClearY);
@@ -68,21 +117,28 @@ namespace ft2232raster
                             {
                                 reg ^= (1 << _pinClockY);
                             }
+
                         }
 
-                        buf[pos] = reg;
+                        byte z = (byte)(_resZ - 1);
+                        if ((0 <= x && x < _resX) && ((0 <= y) && (y < _resY)))
+                            z = _image[x + ((_resY - y - 1) * _resX)];
+
+                        reg |= (byte)(z & _pinZMask);
+
+
+                        _buf[pos] = reg;
 
                         pos++;
-
-
-                        buf[pos] = (byte) (reg | (1 << _pinClockX));
-                        
-                        pos++;
-
                     }
+
+
+                    // buf[pos] = (byte) (reg | (1 << _pinClockX));
+                    // 
+                    // pos++;
+
                 }
             }
-
         }
 
 

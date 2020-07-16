@@ -13,9 +13,11 @@ namespace ft2232raster
 
         private static FTDI _channel;
         private static byte[] _buf;
+        private static int _bufpos;
 
         // 2000000 max
-        static uint _baudrate = 2000000;
+        static uint _baudrate = 4000000;
+
 
 
         private static byte[] _image;
@@ -28,22 +30,23 @@ namespace ft2232raster
 
         static int _porchBackY = 10;
         static int _porchFrontY = 10;
+
+
+
         const byte _pinClockMask = 0b00100000;
         const byte _pinZMask     = 0b00001111;
-
-        // const byte _pinClockX = 4;
-        // const byte _pinClockY = 5;
-        // const byte _pinClearX = 6;
-        // const byte _pinClearY = 7;
 
         const byte _pinClockY = 6;
         const byte _pinClearY = 7;
 
+
+
+
         // const string _imagepath = @"E:\GFX\ILDA\mayoi420\Mayoi420 1.bmp";
-        // const string _imagepath = @"E:\GFX\ILDA\dich\dich04.bmp";
+        const string _imagepath = @"E:\GFX\ILDA\dich\dich04.bmp";
         // const string _imagepath = @"E:\GFX\ILDA\chess 2.bmp";
         // const string _imagepath = @"E:\GFX\ILDA\chess.bmp";
-        const string _imagepath = @"E:\GFX\ILDA\lines.bmp";
+        // const string _imagepath = @"E:\GFX\ILDA\lines.bmp";
 
         static void Main(string[] args)
         {
@@ -63,7 +66,7 @@ namespace ft2232raster
 
             _image = new byte[img.Width * img.Height];
 
-            var colorOffsetKoeff = 2;
+            var colorOffsetKoeff = 1;
             var colorOffset = 256 - (256 / colorOffsetKoeff);
 
             for (int i = 0; i < img.Height; i++)
@@ -78,14 +81,79 @@ namespace ft2232raster
 
             img.Dispose();
 
-            DrawDirect();
+            // DrawDirect();
+            DrawInterleaved();
 
         }
 
 
+        static void DrawInterleaved()
+        {
+            _bufpos = 0;
+
+            while (true)
+            {
+                foreach (var i in Enumerable.Range(0, 2))
+                {
+
+                    foreach (var y in Enumerable.Range(-_porchFrontY, _porchFrontY + _resY + _porchBackY))
+                    {
+
+                        int maxY = _resY;
+                        int yy = y;
+                        if ((0 <= y) && (y < _resY))
+                        {
+                            maxY = (maxY & 1022) + i;
+                            yy = (yy & 1022) + i;
+                        }
+
+                        byte reg = _pinClockMask;
+
+                        foreach (var x in Enumerable.Range(-_porchFrontX, _porchFrontX + _resX + _porchBackX))
+                        {
+                            if (_bufpos >= _bufferSize)
+                            {
+                                _bufpos = 0;
+
+                                WriteToChannel(_channel, _buf);
+                            }
+
+                            reg = _pinClockMask;
+
+                            if (x >= _resX)
+                            {
+                                if (y >= _resY)
+                                {
+                                    reg ^= (1 << _pinClearY);
+
+                                }
+                                else
+                                {
+                                    reg ^= (1 << _pinClockY);
+                                }
+
+                            }
+
+                            byte z = (byte)(_resZ - 1);
+                            if ((0 <= x && x < _resX) && ((0 <= yy) && (yy < _resY)))
+                                z = _image[x + ((_resY - yy - 1) * _resX)];
+
+                            reg |= (byte)(z & _pinZMask);
+
+
+                            _buf[_bufpos] = reg;
+
+                            _bufpos++;
+                        }
+
+                    }
+                }
+            }
+        }
+
         static void DrawDirect()
         {
-            int pos = 0;
+            _bufpos = 0;
 
             while (true)
             {
@@ -95,9 +163,9 @@ namespace ft2232raster
                     foreach (var x in Enumerable.Range(-_porchFrontX, _porchFrontX + _resX + _porchBackX))
                     {
 
-                        if (pos >= _bufferSize)
+                        if (_bufpos >= _bufferSize)
                         {
-                            pos = 0;
+                            _bufpos = 0;
 
                             WriteToChannel(_channel, _buf);
                         }
@@ -127,9 +195,9 @@ namespace ft2232raster
                         reg |= (byte)(z & _pinZMask);
 
 
-                        _buf[pos] = reg;
+                        _buf[_bufpos] = reg;
 
-                        pos++;
+                        _bufpos++;
                     }
 
 

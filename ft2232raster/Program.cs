@@ -25,11 +25,11 @@ namespace ft2232raster
         static int _resY = 384;
         static int _resZ = 16;
 
-        static int _porchBackX = 10;
         static int _porchFrontX = 10;
+        static int _porchBackX = 10;
 
-        static int _porchBackY = 10;
         static int _porchFrontY = 10;
+        static int _porchBackY = 10;
 
 
 
@@ -80,7 +80,7 @@ namespace ft2232raster
                 }
             }
 
-            _porchBackX = (_resX / 3) * 2;
+            _porchFrontX = (_resX / 3) * 2;
 
             img.Dispose();
 
@@ -100,7 +100,7 @@ namespace ft2232raster
                 foreach (var i in Enumerable.Range(0, 2))
                 {
 
-                    foreach (var y in Enumerable.Range(-_porchFrontY, _porchFrontY + _resY + _porchBackY))
+                    foreach (var y in Enumerable.Range(-_porchBackY, _porchBackY + _resY + _porchFrontY))
                     {
 
                         int maxY = _resY;
@@ -113,7 +113,7 @@ namespace ft2232raster
 
                         byte reg = _pinClockMask;
 
-                        foreach (var x in Enumerable.Range(-_porchFrontX, _porchFrontX + _resX + _porchBackX))
+                        foreach (var x in Enumerable.Range(-_porchBackX, _porchBackX + _resX + _porchFrontX))
                         {
                             if (_bufpos >= _bufferSize)
                             {
@@ -162,9 +162,9 @@ namespace ft2232raster
             while (true)
             {
 
-                foreach (var y in Enumerable.Range(-_porchFrontY, _porchFrontY + _resY + _porchBackY))
+                foreach (var y in Enumerable.Range(-_porchBackY, _porchBackY + _resY + _porchFrontY))
                 {
-                    foreach (var x in Enumerable.Range(-_porchFrontX, _porchFrontX + _resX + _porchBackX))
+                    foreach (var x in Enumerable.Range(-_porchBackX, _porchBackX + _resX + _porchFrontX))
                     {
 
                         if (_bufpos >= _bufferSize)
@@ -176,7 +176,7 @@ namespace ft2232raster
 
                         byte reg = _pinClockMask;
 
-                        if (x >= _resX + _porchBackX - 1)
+                        if (x >= _resX + _porchFrontX - 1)
                         {
 
                             if (y >= _resY)
@@ -214,7 +214,7 @@ namespace ft2232raster
             while (true)
             {
 
-                foreach (var x in Enumerable.Range(-_porchFrontX, _porchFrontX + _resX + _porchBackX))
+                foreach (var x in Enumerable.Range(-_porchBackX, _porchBackX + _resX + _porchFrontX))
                 {
 
                     if (_bufpos >= _bufferSize)
@@ -226,7 +226,7 @@ namespace ft2232raster
 
                     byte reg = _pinClockMask;
 
-                    if (x >= _resX + _porchBackX - 1)
+                    if (x >= _resX + _porchFrontX - 1)
                     {
                         reg ^= (1 << _pinClearX);
 
@@ -243,7 +243,7 @@ namespace ft2232raster
                     _buf[_bufpos] = reg;
                     _bufpos++;
 
-                    foreach (var y in Enumerable.Range(-_porchFrontY, _porchFrontY + _resY + _porchBackY))
+                    foreach (var y in Enumerable.Range(-_porchBackY, _porchBackY + _resY + _porchFrontY))
                     {
 
                         reg = _pinClockMask;

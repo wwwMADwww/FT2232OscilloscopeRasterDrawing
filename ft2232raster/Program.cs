@@ -36,6 +36,7 @@ namespace ft2232raster
         const byte _pinClockMask = 0b00100000;
         const byte _pinZMask     = 0b00001111;
 
+        const byte _pinClearX = 5;
         const byte _pinClockY = 6;
         const byte _pinClearY = 7;
 
@@ -75,14 +76,17 @@ namespace ft2232raster
                 {
                     Color pixel = img.GetPixel(j, i);
 
-                    _image[j + (i * img.Width)] = (byte) ((((pixel.G / colorOffsetKoeff) + colorOffset) / _resZ) ^ _pinZMask);
+                    _image[j + (i * img.Width)] = (byte)((((pixel.G / colorOffsetKoeff) + colorOffset) / _resZ) ^ _pinZMask);
                 }
             }
 
+            _porchBackX = (_resX / 3) * 2;
+
             img.Dispose();
 
-            // DrawDirect();
-            DrawInterleaved();
+            DrawDirect();
+            // DrawInterleaved();
+            // DrawYtoX();
 
         }
 
@@ -172,9 +176,8 @@ namespace ft2232raster
 
                         byte reg = _pinClockMask;
 
-                        if (x >= _resX)
+                        if (x >= _resX + _porchBackX - 1)
                         {
-                            // reg ^= (1 << _pinClearX);
 
                             if (y >= _resY)
                             {
@@ -200,15 +203,78 @@ namespace ft2232raster
                         _bufpos++;
                     }
 
-
-                    // buf[pos] = (byte) (reg | (1 << _pinClockX));
-                    // 
-                    // pos++;
-
                 }
             }
         }
 
+        static void DrawYtoX()
+        {
+            _bufpos = 0;
+
+            while (true)
+            {
+
+                foreach (var x in Enumerable.Range(-_porchFrontX, _porchFrontX + _resX + _porchBackX))
+                {
+
+                    if (_bufpos >= _bufferSize)
+                    {
+                        _bufpos = 0;
+
+                        WriteToChannel(_channel, _buf);
+                    }
+
+                    byte reg = _pinClockMask;
+
+                    if (x >= _resX + _porchBackX - 1)
+                    {
+                        reg ^= (1 << _pinClearX);
+
+                        _buf[_bufpos] = reg;
+                        _bufpos++;
+
+                        _bufpos = 0;
+
+                        WriteToChannel(_channel, _buf);
+                    }
+
+
+                    reg ^= (1 << _pinClearY);
+                    _buf[_bufpos] = reg;
+                    _bufpos++;
+
+                    foreach (var y in Enumerable.Range(-_porchFrontY, _porchFrontY + _resY + _porchBackY))
+                    {
+
+                        reg = _pinClockMask;
+
+                        if (_bufpos >= _bufferSize)
+                        {
+                            _bufpos = 0;
+
+                            WriteToChannel(_channel, _buf);
+                        }
+
+                        byte z = (byte)(_resZ - 1);
+                        if ((0 <= x && x < _resX) && ((0 <= y) && (y < _resY)))
+                            z = _image[x + ((_resY - y - 1) * _resX)];
+
+                        reg |= (byte)(z & _pinZMask);
+
+
+                        _buf[_bufpos] = reg;
+
+                        _bufpos++;
+
+
+                    }
+
+
+
+
+                }
+            }
+        }
 
         static void WriteToChannel(FTDI channel, byte[] dataBuf)
         {

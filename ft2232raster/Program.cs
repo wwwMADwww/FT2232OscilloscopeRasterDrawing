@@ -16,7 +16,7 @@ namespace ft2232raster
         private static int _bufpos;
 
         // 2000000 max
-        static uint _baudrate = 4000000;
+        static uint _baudrate = 2000000;
 
 
 
@@ -33,7 +33,7 @@ namespace ft2232raster
 
 
 
-        const byte _pinClockMask = 0b00100000;
+        const byte _pinClockMask = 0b00000000;
         const byte _pinZMask     = 0b00001111;
 
         const byte _pinClearX = 5;
@@ -44,8 +44,11 @@ namespace ft2232raster
 
 
         // const string _imagepath = @"E:\GFX\ILDA\mayoi420\Mayoi420 1.bmp";
-        const string _imagepath = @"E:\GFX\ILDA\dich\dich04.bmp";
-        // const string _imagepath = @"E:\GFX\ILDA\chess 2.bmp";
+        // const string _imagepath = @"E:\GFX\ILDA\dich\dich04.bmp";
+        // const string _imagepath = @"E:\GFX\ILDA\chess 480x384.bmp";
+        //const string _imagepath = @"E:\GFX\ILDA\cover\cover 2.bmp";
+        // const string _imagepath = @"E:\GFX\ILDA\head\head01.bmp";
+        const string _imagepath = @"E:\GFX\ILDA\kaguya\kaguya.bmp";
         // const string _imagepath = @"E:\GFX\ILDA\chess.bmp";
         // const string _imagepath = @"E:\GFX\ILDA\lines.bmp";
 
@@ -176,7 +179,22 @@ namespace ft2232raster
 
                         byte reg = _pinClockMask;
 
-                        if (x >= _resX + _porchFrontX - 1)
+                        // if (x >= _resX + _porchFrontX - 1)
+                        // {
+                        // 
+                        //     if (y >= _resY)
+                        //     {
+                        //         reg ^= (1 << _pinClearY);
+                        // 
+                        //     }
+                        //     else
+                        //     {
+                        //         reg ^= (1 << _pinClockY);
+                        //     }
+                        // 
+                        // }
+
+                        if (x >= _resX)
                         {
 
                             if (y >= _resY)
@@ -244,7 +262,7 @@ namespace ft2232raster
                     _bufpos++;
 
                     foreach (var y in Enumerable.Range(-_porchBackY, _porchBackY + _resY + _porchFrontY))
-                    {
+                    { 
 
                         reg = _pinClockMask;
 
